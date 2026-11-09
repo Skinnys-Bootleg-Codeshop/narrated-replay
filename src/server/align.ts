@@ -22,14 +22,16 @@ class NodeMap {
   private nodes = new Map<number, SNode>();
   private parent = new Map<number, number | null>();
 
+  /** Adds a deep copy of the subtree: mutations must never change the caller's events. */
   addTree(n: SNode, parentId: number | null): SNode[] {
     const added: SNode[] = [];
-    const walk = (x: SNode, p: number | null) => {
-      this.nodes.set(x.id, x);
-      this.parent.set(x.id, p);
-      added.push(x);
-      x.childNodes ??= [];
-      for (const c of x.childNodes) walk(c, x.id);
+    const walk = (x: SNode, p: number | null): SNode => {
+      const c: SNode = { ...x, attributes: x.attributes ? { ...x.attributes } : undefined, childNodes: [] };
+      this.nodes.set(c.id, c);
+      this.parent.set(c.id, p);
+      added.push(c);
+      for (const child of x.childNodes ?? []) c.childNodes!.push(walk(child, c.id));
+      return c;
     };
     walk(n, parentId);
     return added;
@@ -46,7 +48,7 @@ class NodeMap {
     const p = parentId != null ? this.nodes.get(parentId) : undefined;
     if (p) {
       p.childNodes ??= [];
-      if (!p.childNodes.some((c) => c.id === n.id)) p.childNodes.push(n);
+      if (!p.childNodes.some((c) => c.id === n.id)) p.childNodes.push(added[0]!);
     }
     return added;
   }

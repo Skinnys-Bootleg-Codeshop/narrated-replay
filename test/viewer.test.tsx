@@ -51,6 +51,36 @@ async function mount(items: any[] = []) {
 }
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
+describe('viewer round 3 (review findings)', () => {
+  it('pauses audio and resets play state when the events array is replaced', async () => {
+    const p = await mount();
+    p.emit('ui-update-player-state', 'playing');
+    p.emit('ui-update-current-time', 1000);
+    expect(ready.audio.paused).toBe(false);
+    const audio = ready.audio as HTMLAudioElement;
+    await act(async () => {
+      root.render(createElement(SessionViewer, { meta, events: [...events], audioUrl: '/a.webm', items: [], onReady: (a) => { ready = a; } }));
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(audio.paused).toBe(true);
+    const p2 = players.at(-1);
+    p2.emit('ui-update-current-time', 1000); // replay is paused: audio must stay paused
+    expect(audio.paused).toBe(true);
+  });
+  it('syncs audio when audioUrl arrives after the player was created', async () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await act(async () => { root.render(createElement(SessionViewer, { meta, events, audioUrl: null, items: [], onReady: (a) => { ready = a; } })); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const p = players.at(-1);
+    await act(async () => { root.render(createElement(SessionViewer, { meta, events, audioUrl: '/a.webm', items: [], onReady: (a) => { ready = a; } })); });
+    p.emit('ui-update-player-state', 'playing');
+    p.emit('ui-update-current-time', 1000);
+    expect(host.querySelector('audio')!.paused).toBe(false);
+  });
+});
+
 describe('viewer (review findings)', () => {
   it('turns skipInactive off so narration is not treated as inactivity', async () => {
     const p = await mount();

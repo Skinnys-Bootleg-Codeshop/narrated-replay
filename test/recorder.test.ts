@@ -57,3 +57,48 @@ describe('recorder stop marker (finding: no completion event)', () => {
     expect(typeof last.data.payload.at).toBe('number');
   });
 });
+
+describe('recorder start guard (finding: direct API allows concurrent starts)', () => {
+  it('rejects a second start while the first awaits the microphone, and releases the stream on stop', async () => {
+    const { createRecorder } = await import('../src/recorder/index.js');
+    let resolveMic: (s: unknown) => void = () => {};
+    const tracksStopped = vi.fn();
+    const getUserMedia = vi.fn(() => new Promise((res) => { resolveMic = res; }));
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } });
+    (globalThis as any).MediaRecorder = class {
+      static isTypeSupported() { return true; }
+      state = 'inactive'; mimeType = 'audio/webm';
+      private l: Record<string, Array<(e?: unknown) => void>> = {};
+      addEventListener(ev: string, cb: (e?: unknown) => void) { (this.l[ev] ??= []).push(cb); }
+      start() { this.state = 'recording'; queueMicrotask(() => this.l.start?.forEach((c) => c())); }
+      stop() { this.state = 'inactive'; queueMicrotask(() => this.l.stop?.forEach((c) => c())); }
+    };
+    const rec = createRecorder({ uploader: { put: async () => {}, finish: async () => {} }, captureConsoleErrors: false });
+    const first = rec.start();
+    await expect(rec.start()).rejects.toThrow(/pending/);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    resolveMic({ getTracks: () => [{ stop: tracksStopped }] });
+    await first;
+    await rec.stop();
+    expect(tracksStopped).toHaveBeenCalledTimes(1);
+    delete (globalThis as any).MediaRecorder;
+  });
+});
+
+describe('rrweb option precedence (finding: rrweb.maskAllInputs bypasses hidden masking)', () => {
+  it('clears an inherited maskAllInputs so maskInputOptions (with hidden) applies', async () => {
+    const seen: any[] = [];
+    vi.doMock('rrweb', () => {
+      const record: any = (o: any) => { seen.push(o); return () => {}; };
+      record.addCustomEvent = () => {};
+      return { record };
+    });
+    vi.resetModules();
+    const { createRecorder } = await import('../src/recorder/index.js');
+    const rec = createRecorder({ audio: false, captureConsoleErrors: false, rrweb: { maskAllInputs: true }, uploader: { put: async () => {}, finish: async () => {} } });
+    await rec.start();
+    expect(seen[0].maskAllInputs).toBeUndefined();
+    expect(seen[0].maskInputOptions.hidden).toBe(true);
+    await rec.stop();
+  });
+});

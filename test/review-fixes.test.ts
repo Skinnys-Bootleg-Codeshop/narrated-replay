@@ -56,7 +56,7 @@ describe('forgetSession / narrated-replay forget', () => {
     const a = randomUUID(); const b = randomUUID();
     for (const id of [a, b]) {
       await store.putMeta({ sessionId: id, rrwebStart: 1, audioStart: null, audioMimeType: null, userAgent: 'u', url: 'http://x/', endedAt: 2 });
-      await store.writeFile(id, 'items.json', JSON.stringify([{ id: `${id}:0`, quote: `quote from ${id.slice(0, 4)}` }]));
+      await store.writeFile(id, 'items.json', JSON.stringify([{ id: `${id}:0`, quote: `quote from ${id.slice(0, 4)}`, category: id === a ? 'obvious_bug' : 'product_decision' }]));
     }
     await store.writeJson('themes.json', [
       { id: 't1', title: 'shared', description: '', exampleQuotes: [`quote from ${a.slice(0, 4)}`, `quote from ${b.slice(0, 4)}`], itemIds: [`${a}:0`, `${b}:0`], sessionIds: [a, b], category: 'obvious_bug' },
@@ -69,9 +69,32 @@ describe('forgetSession / narrated-replay forget', () => {
     expect(themes[0].itemIds).toEqual([`${b}:0`]);
     expect(themes[0].sessionIds).toEqual([b]);
     expect(themes[0].exampleQuotes).toEqual([`quote from ${b.slice(0, 4)}`]);
+    expect(themes[0].category).toBe('product_decision'); // recomputed from surviving items
     expect(await store.listSessions()).toEqual([b]);
     expect(JSON.stringify(themes)).not.toContain(a);
     expect((await readdir(dir)).includes(a)).toBe(false);
+  });
+  it('rebuilds quotes from surviving items even when the session items.json is already gone', async () => {
+    const a = randomUUID(); const b = randomUUID();
+    for (const id of [a, b]) await store.putMeta({ sessionId: id, rrwebStart: 1, audioStart: null, audioMimeType: null, userAgent: 'u', url: 'http://x/', endedAt: 2 });
+    await store.writeFile(b, 'items.json', JSON.stringify([{ id: `${b}:0`, quote: 'kept quote', category: 'easy_fix' }]));
+    // session a's items.json was deleted by hand under the old retention advice
+    await store.writeJson('themes.json', [
+      { id: 't1', title: 'x', description: '', exampleQuotes: ['kept quote', 'secret words from a'], itemIds: [`${a}:0`, `${b}:0`], sessionIds: [a, b], category: 'obvious_bug' },
+    ]);
+    await forgetSession({ store, sessionId: a });
+    const themes = (await store.readJson<any[]>('themes.json'))!;
+    expect(themes[0].exampleQuotes).toEqual(['kept quote']);
+    expect(JSON.stringify(themes)).not.toContain('secret words');
+  });
+  it('fails and changes nothing when a surviving item cannot be found', async () => {
+    const a = randomUUID(); const b = randomUUID();
+    for (const id of [a, b]) await store.putMeta({ sessionId: id, rrwebStart: 1, audioStart: null, audioMimeType: null, userAgent: 'u', url: 'http://x/', endedAt: 2 });
+    const before = [{ id: 't1', title: 'x', description: '', exampleQuotes: ['q'], itemIds: [`${a}:0`, `${b}:0`], sessionIds: [a, b], category: 'obvious_bug' }];
+    await store.writeJson('themes.json', before);
+    await expect(forgetSession({ store, sessionId: a })).rejects.toThrow(/cannot forget/);
+    expect(await store.readJson('themes.json')).toEqual(before);
+    expect(await store.listSessions()).toContain(a);
   });
   it('CLI forget works and rejects missing arguments with exit 2', async () => {
     const id = randomUUID();
@@ -120,6 +143,24 @@ describe('align: attribute and text mutations', () => {
       { type: 3, timestamp: 300, data: { source: 0, adds: [], removes: [], attributes: [], texts: [{ id: 4, value: 'Error: invalid date' }] } },
     ], meta);
     expect(tl).toContainEqual({ tMs: 300, kind: 'text', detail: 'Error: invalid date' });
+  });
+});
+
+describe('align: node state is independent of the events', () => {
+  const meta: SessionMeta = { sessionId: 's', rrwebStart: 0, audioStart: 0, audioMimeType: null, userAgent: 'u', url: '', endedAt: 1 };
+  it('buildTimeline does not mutate events, so a second pass gives the same result', () => {
+    const events: any[] = [
+      { type: 2, timestamp: 0, data: { node: { id: 1, type: 0, childNodes: [{ id: 2, type: 2, tagName: 'button', attributes: { 'aria-label': 'Save' }, childNodes: [] },
+        { id: 3, type: 2, tagName: 'p', attributes: {}, childNodes: [{ id: 4, type: 3, textContent: 'Saving…' }] }] } } },
+      { type: 3, timestamp: 50, data: { source: 2, type: 2, id: 2 } },
+      { type: 3, timestamp: 100, data: { source: 0, adds: [], removes: [], texts: [{ id: 4, value: 'Error: bad' }], attributes: [{ id: 2, attributes: { 'aria-label': 'Delete' } }] } },
+    ];
+    const snapshotBefore = JSON.stringify(events);
+    const first = buildTimeline(events, meta);
+    expect(JSON.stringify(events)).toBe(snapshotBefore);
+    const second = buildTimeline(events, meta);
+    expect(second).toEqual(first);
+    expect(first.find((t) => t.kind === 'click')!.detail).toContain('Save');
   });
 });
 

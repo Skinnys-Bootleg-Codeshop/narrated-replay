@@ -57,9 +57,10 @@ export function SessionViewer({ meta, events, audioUrl, items = [], width = 800,
       const Player = mod.default ?? mod.Player;
       player = new Player({ target: target.current, props: { events, width, height, autoPlay: false, skipInactive: false } });
       playerRef.current = player;
-      const audio = audioRef.current;
+      // Read the element on every call: audioUrl may arrive after the player is created.
       const speedOf = () => Number(player.getReplayer?.()?.config?.speed) || 1;
       const syncAudio = (replayMs: number) => {
+        const audio = audioRef.current;
         if (!audio) return;
         const speed = speedOf();
         if (audio.playbackRate !== speed) audio.playbackRate = speed;
@@ -76,15 +77,19 @@ export function SessionViewer({ meta, events, audioUrl, items = [], width = 800,
       player.addEventListener('ui-update-current-time', (e: { payload: number }) => syncAudio(e.payload));
       player.addEventListener('ui-update-player-state', (e: { payload: string }) => {
         playingRef.current = e.payload === 'playing';
+        const audio = audioRef.current;
         if (!audio) return;
         if (e.payload === 'playing') {
           syncAudio(player.getReplayer().getCurrentTime());
         } else if (!audio.paused) audio.pause();
       });
-      onReady?.({ seekToAudioMs, seekToReplayMs, audio, player, offsetMs });
+      onReady?.({ seekToAudioMs, seekToReplayMs, get audio() { return audioRef.current; }, player, offsetMs });
     })();
     return () => {
       disposed = true;
+      // A replaced or unmounted replay must not leave narration playing on its own.
+      playingRef.current = false;
+      audioRef.current?.pause();
       try { player?.$destroy?.(); } catch { /* ignore */ }
       playerRef.current = null;
       if (target.current) target.current.innerHTML = '';

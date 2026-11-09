@@ -60,6 +60,7 @@ export function createRecorder(opts: RecorderOptions): Recorder {
   let audioMime: string | null = null;
   let onPageHide: (() => void) | undefined;
   let uploadError: unknown;
+  let starting = false;
 
   const track = (p: Promise<void>) => {
     const q = p.catch((e) => {
@@ -97,6 +98,9 @@ export function createRecorder(opts: RecorderOptions): Recorder {
 
   async function start() {
     if (state === 'recording' || state === 'stopping') throw new Error(`narrated-replay: cannot start while ${state}`);
+    // A second call while the first awaits the microphone would leak its stream and pipeline.
+    if (starting) throw new Error('narrated-replay: cannot start while a start is pending');
+    starting = true;
     sessionId = crypto.randomUUID();
     events = [];
     eventSeq = 0;
@@ -132,6 +136,9 @@ export function createRecorder(opts: RecorderOptions): Recorder {
           events.push(e);
         },
         // Every input type (including hidden) goes through maskInputFn: shape only; hidden and passwords fully masked.
+        // rrweb gives `maskAllInputs: true` precedence over maskInputOptions and its map lacks `hidden`:
+        // clear any inherited flag so ours applies.
+        maskAllInputs: undefined,
         maskInputOptions: { ...MASK_ALL_INPUT_TYPES },
         maskInputFn: (text: string, el: HTMLElement) =>
           // Hidden inputs are always fully masked, even with a custom maskInput.
@@ -179,6 +186,8 @@ export function createRecorder(opts: RecorderOptions): Recorder {
       if (state !== 'error') setState('error');
       emit('error', e);
       throw e;
+    } finally {
+      starting = false;
     }
   }
 
