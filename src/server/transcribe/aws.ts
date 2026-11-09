@@ -66,8 +66,10 @@ export function awsTranscribe(opts: AwsTranscribeOptions): Transcriber {
         throw new Error('AWS Transcribe timed out');
       } finally {
         // Do not leave voice recordings or transcripts behind in the bucket or in AWS Transcribe.
-        if (started) await tc!.send(new cmds.transcribe.DeleteTranscriptionJobCommand({ TranscriptionJobName: jobName })).catch(() => undefined);
-        if (uploaded) await s3!.send(new cmds.s3.DeleteObjectCommand({ Bucket: opts.bucket, Key: key })).catch(() => undefined);
+        const warn = (what: string) => (e: unknown) =>
+          console.warn(`narrated-replay: could not delete ${what}; a copy of the recording may remain in AWS: ${e instanceof Error ? e.message : String(e)}`);
+        if (started) await tc!.send(new cmds.transcribe.DeleteTranscriptionJobCommand({ TranscriptionJobName: jobName })).catch(warn(`Transcribe job ${jobName}`));
+        if (uploaded) await s3!.send(new cmds.s3.DeleteObjectCommand({ Bucket: opts.bucket, Key: key })).catch(warn(`s3://${opts.bucket}/${key}`));
       }
     },
   };

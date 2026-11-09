@@ -93,15 +93,17 @@ async function analyze(args: string[]): Promise<number> {
   const ids = v.all ? await store.listSessions() : [v.session!];
   let failed = 0;
   for (const id of ids) {
-    if (v.all && !v.force) {
-      // A scheduled `--all` must not re-transcribe and re-send every old session to the LLM each time.
-      const raw = await store.readFile(id, 'analysis.json');
-      if (raw && JSON.parse(Buffer.from(raw).toString('utf8')).status === 'ok') {
-        console.log(`${id}: already analysed, skipped (use --force to redo)`);
-        continue;
-      }
-    }
     try {
+      if (v.all && !v.force) {
+        // A scheduled `--all` must not re-transcribe and re-send every old session to the LLM each time.
+        const raw = await store.readFile(id, 'analysis.json');
+        let done = false;
+        try { done = !!raw && JSON.parse(Buffer.from(raw).toString('utf8')).status === 'ok'; } catch { /* unreadable: analyse again */ }
+        if (done) {
+          console.log(`${id}: already analysed, skipped (use --force to redo)`);
+          continue;
+        }
+      }
       const r = await analyzeSession({ store, sessionId: id, transcriber, llm, extraction, productContext });
       console.log(`${id}: ${r.items.length} items, ${r.themes.length} themes total${r.seekable ? '' : ' (audio not seekable: ffmpeg missing or failed)'}`);
     } catch (e) {

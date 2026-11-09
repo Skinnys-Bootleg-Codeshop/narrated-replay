@@ -68,7 +68,8 @@ export function createRecorder(opts: RecorderOptions): Recorder {
     pending.push(q);
   };
 
-  const MAX_EVENT_CHUNK_CHARS = 3_000_000; // well under the ingest default of 5 MB
+  const MAX_EVENT_CHUNK_BYTES = 3_000_000; // well under the ingest default of 5 MB
+  const enc = new TextEncoder();
   const flushEvents = () => {
     if (!events.length || !sessionId) return;
     const all = events;
@@ -85,9 +86,10 @@ export function createRecorder(opts: RecorderOptions): Recorder {
     };
     for (const e of all) {
       const j = JSON.stringify(e);
-      if (batch.length && size + j.length + 1 > MAX_EVENT_CHUNK_CHARS) send();
+      const bytes = enc.encode(j).length;
+      if (batch.length && size + bytes + 1 > MAX_EVENT_CHUNK_BYTES) send();
       batch.push(j);
-      size += j.length + 1;
+      size += bytes + 1;
     }
     send();
   };
