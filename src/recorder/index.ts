@@ -68,11 +68,28 @@ export function createRecorder(opts: RecorderOptions): Recorder {
     pending.push(q);
   };
 
+  const MAX_EVENT_CHUNK_CHARS = 3_000_000; // well under the ingest default of 5 MB
   const flushEvents = () => {
     if (!events.length || !sessionId) return;
-    const body = JSON.stringify(events);
+    const all = events;
     events = [];
-    track(opts.uploader.put(sessionId, 'events', eventSeq++, body));
+    // Greedy split so one big flush (e.g. after a long pause) does not exceed the server's chunk limit.
+    // A single event bigger than the limit still goes alone and may be rejected.
+    let batch: string[] = [];
+    let size = 2;
+    const send = () => {
+      if (!batch.length) return;
+      track(opts.uploader.put(sessionId!, 'events', eventSeq++, `[${batch.join(',')}]`));
+      batch = [];
+      size = 2;
+    };
+    for (const e of all) {
+      const j = JSON.stringify(e);
+      if (batch.length && size + j.length + 1 > MAX_EVENT_CHUNK_CHARS) send();
+      batch.push(j);
+      size += j.length + 1;
+    }
+    send();
   };
 
   async function start() {

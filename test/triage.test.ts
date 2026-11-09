@@ -110,6 +110,35 @@ describe('analyzeSession', () => {
     expect(r.themes[0]!.itemIds).toHaveLength(1);
   });
 
+  it('re-analysis drops the session\'s old example quotes from themes', async () => {
+    const id = await seed();
+    const mk = (quote: string) => [
+      { items: [item([`${id}-m0`], { quote })] },
+      { newThemes: [{ key: 'd', title: 'Date', description: 'd' }], assignments: [{ ref: 'i0', themeId: 'new:d' }] },
+    ];
+    await analyzeSession({ store, sessionId: id, transcriber, llm: mockLlm(mk('first wording')) });
+    const r = await analyzeSession({ store, sessionId: id, transcriber, llm: mockLlm(mk('second wording')) });
+    expect(r.themes[0]!.exampleQuotes).toEqual(['second wording']);
+  });
+
+  it('theme category counts items from earlier sessions too', async () => {
+    const a = await seed();
+    const b = await seed();
+    const c = await seed();
+    const first = (sid: string, cat: string) => [
+      { items: [item([`${sid}-m0`], { category: cat })] },
+      { newThemes: [{ key: 'd', title: 'Date', description: 'd' }], assignments: [{ ref: 'i0', themeId: 'new:d' }] },
+    ];
+    const again = (sid: string, cat: string) => [
+      { items: [item([`${sid}-m0`], { category: cat })] },
+      { newThemes: [], assignments: [{ ref: 'i0', themeId: 't1' }] },
+    ];
+    await analyzeSession({ store, sessionId: a, transcriber, llm: mockLlm(first(a, 'obvious_bug')) });
+    await analyzeSession({ store, sessionId: b, transcriber, llm: mockLlm(again(b, 'obvious_bug')) });
+    const r = await analyzeSession({ store, sessionId: c, transcriber, llm: mockLlm(again(c, 'easy_fix')) });
+    expect(r.themes[0]!.category).toBe('obvious_bug'); // 2 vs 1, not flipped by the newest session
+  });
+
   it('retries once on invalid output, then fails the session without writing items', async () => {
     const id = await seed();
     const llm = mockLlm(['not json', 'still not json']);

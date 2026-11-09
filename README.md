@@ -20,11 +20,17 @@ Status: v0.1, not published to npm. Install from GitHub.
   `localStorage` (`narrated-replay:consent`). Replace the default text (`consentText`) with wording that fits
   your product and your legal advice. Recording starts only after a user gesture and an accepted prompt.
 - **Retention.** Nothing is deleted automatically. Raw audio is the most sensitive artefact: decide how long you
-  keep it, and delete the session directory (or S3 prefix) when you are done.
+  keep it, and delete the session directory (or S3 prefix) when you are done. The AWS Transcribe adapter uploads a temporary
+  copy of the audio and starts a Transcribe job; it deletes both when the job ends, but a crash in between can leave them.
 - **Masking does not cover speech.** Typed text is recorded in shape only (digits become `9`, letters `a`,
   other characters are kept) and password and `cc-*` fields are fully masked, but anything a person *says* is
   recorded as spoken, including names, email addresses and card numbers read aloud. The replay also shows
   whatever is rendered on the page: block sensitive elements with rrweb's `blockClass` (`rr-block`) option.
+- **Console output.** By default the recorder also captures `console.error` and `console.warn` text and
+  uncaught error messages (up to 500 characters each), unmasked, and the analysis sends them to the LLM. If your
+  app logs user input, pass `captureConsoleErrors: false`. A password field whose type is switched to `text`
+  by a "show password" toggle is recorded in shape form (length and character types) rather than as stars,
+  unless it has `autocomplete="current-password"` or `new-password`.
 - **Third parties.** The transcript and the page context are sent to the LLM you choose (Anthropic API,
   Bedrock, or the local `claude` CLI), and the audio goes to the transcriber you choose (local
   faster-whisper by default; OpenAI or AWS Transcribe if you configure them). Check those terms.
@@ -113,13 +119,16 @@ code (not by the model) for every `product_decision` and for any item with confi
 A new session's items are assigned to an existing theme when they describe the same issue, otherwise to a new one.
 
 **4. A viewer page** that shows the replay with the audio in sync and the items beside it
-(`examples/next-app/app/review/[id]`). Your audio route must answer HTTP Range requests, or browsers cannot seek:
+(`examples/next-app/app/review/[id]`; protect that page and the audio route with your own access check, they show voice and screen content). Your audio route must answer HTTP Range requests, or browsers cannot seek:
 
 ```tsx
 import { SessionViewer } from 'narrated-replay/viewer';
 import 'narrated-replay/viewer.css';
 // <SessionViewer meta={meta} events={events} audioUrl={`/api/review/${id}/audio`} items={items} />
 ```
+
+`analyze --all` skips sessions already analysed (use `--force` to redo), so it is safe to run on a schedule. Run
+one analysis at a time per store: `themes.json` is not locked, so two concurrent runs can overwrite each other.
 
 CLI options: `--extraction session|moment` (one LLM call per session, or per spoken moment: dearer, but it
 keeps themes better apart), `--product-context FILE` (a few lines about your product, added to the prompt),

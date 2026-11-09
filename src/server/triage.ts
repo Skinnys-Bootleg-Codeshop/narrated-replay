@@ -123,10 +123,15 @@ export async function analyzeSession(o: AnalyzeOptions): Promise<AnalyzeResult> 
   }
 
   const prior = (await store.readJson<Theme[]>('themes.json')) ?? [];
-  // Re-analysing a session replaces its earlier items.
+  // Re-analysing a session replaces its earlier items, including their example quotes.
+  const oldRaw = await store.readFile(sessionId, 'items.json');
+  const oldQuotes = new Set<string>(
+    oldRaw ? (JSON.parse(Buffer.from(oldRaw).toString('utf8')) as FeedbackItem[]).map((i) => i.quote) : [],
+  );
   const themes: Theme[] = prior
     .map((t) => ({
       ...t,
+      exampleQuotes: t.exampleQuotes.filter((q) => !oldQuotes.has(q)),
       itemIds: t.itemIds.filter((id) => !id.startsWith(`${sessionId}:`)),
       sessionIds: t.sessionIds.filter((s) => s !== sessionId),
     }))
@@ -180,18 +185,20 @@ export async function analyzeSession(o: AnalyzeOptions): Promise<AnalyzeResult> 
       if (t.exampleQuotes.length < 2) t.exampleQuotes.push(item.quote);
     });
   }
-  // Theme category: most common among its items across this session's batch and previous ones.
-  const catOf = new Map<string, Category>();
-  const allItems = new Map<string, Category>();
-  for (const it of items) allItems.set(it.id, it.category);
+  // Theme category: the most common category among all of its items, across every session.
+  const itemsBySession = new Map<string, FeedbackItem[]>([[sessionId, items]]);
   for (const t of themes) {
     const counts = new Map<Category, number>();
-    for (const id of t.itemIds) {
-      const c = allItems.get(id);
-      if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+    for (const sid of t.sessionIds) {
+      if (!itemsBySession.has(sid)) {
+        const raw = await store.readFile(sid, 'items.json').catch(() => null);
+        itemsBySession.set(sid, raw ? (JSON.parse(Buffer.from(raw).toString('utf8')) as FeedbackItem[]) : []);
+      }
+      for (const it of itemsBySession.get(sid)!) {
+        if (t.itemIds.includes(it.id)) counts.set(it.category, (counts.get(it.category) ?? 0) + 1);
+      }
     }
-    if (counts.size) catOf.set(t.id, [...counts.entries()].sort((a, b) => b[1] - a[1])[0]![0]);
-    if (catOf.has(t.id)) t.category = catOf.get(t.id)!;
+    if (counts.size) t.category = [...counts.entries()].sort((x, y) => y[1] - x[1])[0]![0];
   }
 
   await store.writeFile(sessionId, 'items.json', JSON.stringify(items, null, 2));

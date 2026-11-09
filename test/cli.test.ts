@@ -1,3 +1,6 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { main } from '../src/cli/main.js';
 
@@ -27,5 +30,17 @@ describe('cli exit codes', () => {
   });
   it('0 for --help', async () => {
     expect(await run(['--help'])).toBe(0);
+  });
+  it('--all skips sessions whose analysis is already ok (no re-transcription, no LLM)', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'nr-cli-'));
+    const id = '22222222-2222-4222-8222-222222222222';
+    mkdirSync(path.join(dir, id), { recursive: true });
+    writeFileSync(path.join(dir, id, 'meta.json'), JSON.stringify({ sessionId: id, rrwebStart: 1, audioStart: null, audioMimeType: null, userAgent: '', url: '', endedAt: 2 }));
+    writeFileSync(path.join(dir, id, 'analysis.json'), JSON.stringify({ status: 'ok' }));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    try {
+      expect(await main(['analyze', '--store', dir, '--all', '--transcriber', 'faster-whisper', '--llm', 'claude-cli'])).toBe(0);
+      expect(log.mock.calls.flat().join('\n')).toContain('already analysed, skipped');
+    } finally { log.mockRestore(); }
   });
 });

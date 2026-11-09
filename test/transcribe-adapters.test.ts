@@ -33,12 +33,12 @@ describe('awsTranscribe', () => {
     const polls = ['IN_PROGRESS', 'COMPLETED'];
     const t = await awsTranscribe({
       bucket: 'b', pollMs: 1,
-      commands: { s3: { PutObjectCommand: mk('put') }, transcribe: { StartTranscriptionJobCommand: mk('start'), GetTranscriptionJobCommand: mk('get') } },
+      commands: { s3: { PutObjectCommand: mk('put'), DeleteObjectCommand: mk('delobj') }, transcribe: { StartTranscriptionJobCommand: mk('start'), GetTranscriptionJobCommand: mk('get'), DeleteTranscriptionJobCommand: mk('deljob') } },
       s3: { send: async (c: any) => { sent.push(c.n); } },
       transcribe: { send: async (c: any) => { sent.push(c.n); return c.n === 'get' ? { TranscriptionJob: { TranscriptionJobStatus: polls.shift(), Transcript: { TranscriptFileUri: 'u' } } } : {}; } },
       fetchJson: async () => json,
     }).transcribe(new Uint8Array([1]), 'audio/webm');
-    expect(sent).toEqual(['put', 'start', 'get', 'get']);
+    expect(sent).toEqual(['put', 'start', 'get', 'get', 'deljob', 'delobj']); // copies are deleted afterwards
     expect(t.words).toHaveLength(2);
   });
 });

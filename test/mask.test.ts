@@ -12,6 +12,9 @@ describe('masking', () => {
     expect(defaultMaskInput('hunter2', { type: 'password' })).toBe('*******');
     expect(defaultMaskInput('4111 1111', { type: 'text', autocomplete: 'cc-number' })).toBe('*********'.slice(0, 9));
   });
+  it('fully masks fields whose autocomplete says password (show-password toggles)', () => {
+    expect(defaultMaskInput('hunter2', { type: 'text', autocomplete: 'current-password' })).toBe('*******');
+  });
   it('keeps non-ASCII letters as a', () => {
     expect(shapeMask('Zoë 7')).toBe('aaa 9');
   });

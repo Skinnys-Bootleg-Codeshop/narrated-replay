@@ -9,6 +9,6 @@ type InputLike = { type?: string; autocomplete?: string } | null | undefined;
 export function defaultMaskInput(text: string, el?: InputLike): string {
   const type = (el?.type ?? '').toLowerCase();
   const ac = (el?.autocomplete ?? '').toLowerCase();
-  if (type === 'password' || ac.startsWith('cc-')) return '*'.repeat(text.length);
+  if (type === 'password' || ac.includes('password') || ac.startsWith('cc-')) return '*'.repeat(text.length);
   return shapeMask(text);
 }

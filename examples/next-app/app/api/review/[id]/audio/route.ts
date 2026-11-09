@@ -1,3 +1,4 @@
+// Example only: add your own access check here (recordings contain voice and screen content).
 import { assertSessionId } from 'narrated-replay/server';
 import { store } from '../../../../../lib-store';
 

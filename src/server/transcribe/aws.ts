@@ -39,26 +39,36 @@ export function awsTranscribe(opts: AwsTranscribeOptions): Transcriber {
       const id = randomUUID();
       const key = `${opts.prefix ?? 'narrated-replay-transcribe/'}${id}.${extensionFor(mime)}`;
       const jobName = `nr-${id}`;
-      await s3!.send(new cmds.s3.PutObjectCommand({ Bucket: opts.bucket, Key: key, Body: audio }));
-      await tc!.send(
-        new cmds.transcribe.StartTranscriptionJobCommand({
-          TranscriptionJobName: jobName,
-          LanguageCode: 'en-US',
-          Media: { MediaFileUri: `s3://${opts.bucket}/${key}` },
-        }),
-      );
-      for (let i = 0; i < 600; i++) {
-        const r = await tc!.send(new cmds.transcribe.GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
-        const job = r.TranscriptionJob;
-        if (job?.TranscriptionJobStatus === 'COMPLETED') {
-          const url = job.Transcript?.TranscriptFileUri as string;
-          const json = await (opts.fetchJson ?? ((u) => fetch(u).then((x) => x.json())))(url);
-          return parseAwsTranscript(json);
+      let uploaded = false;
+      let started = false;
+      try {
+        await s3!.send(new cmds.s3.PutObjectCommand({ Bucket: opts.bucket, Key: key, Body: audio }));
+        uploaded = true;
+        await tc!.send(
+          new cmds.transcribe.StartTranscriptionJobCommand({
+            TranscriptionJobName: jobName,
+            LanguageCode: 'en-US',
+            Media: { MediaFileUri: `s3://${opts.bucket}/${key}` },
+          }),
+        );
+        started = true;
+        for (let i = 0; i < 600; i++) {
+          const r = await tc!.send(new cmds.transcribe.GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
+          const job = r.TranscriptionJob;
+          if (job?.TranscriptionJobStatus === 'COMPLETED') {
+            const url = job.Transcript?.TranscriptFileUri as string;
+            const json = await (opts.fetchJson ?? ((u) => fetch(u).then((x) => x.json())))(url);
+            return parseAwsTranscript(json);
+          }
+          if (job?.TranscriptionJobStatus === 'FAILED') throw new Error(`AWS Transcribe failed: ${job.FailureReason ?? 'unknown'}`);
+          await new Promise((res) => setTimeout(res, opts.pollMs ?? 3000));
         }
-        if (job?.TranscriptionJobStatus === 'FAILED') throw new Error(`AWS Transcribe failed: ${job.FailureReason ?? 'unknown'}`);
-        await new Promise((res) => setTimeout(res, opts.pollMs ?? 3000));
+        throw new Error('AWS Transcribe timed out');
+      } finally {
+        // Do not leave voice recordings or transcripts behind in the bucket or in AWS Transcribe.
+        if (started) await tc!.send(new cmds.transcribe.DeleteTranscriptionJobCommand({ TranscriptionJobName: jobName })).catch(() => undefined);
+        if (uploaded) await s3!.send(new cmds.s3.DeleteObjectCommand({ Bucket: opts.bucket, Key: key })).catch(() => undefined);
       }
-      throw new Error('AWS Transcribe timed out');
     },
   };
 }

@@ -19,9 +19,10 @@ Usage:
   narrated-replay analyze --store DIR (--session ID | --all)
       --transcriber faster-whisper|openai|aws --llm claude-cli|anthropic|bedrock
       [--model M] [--extraction session|moment] [--product-context FILE]
-      [--python PATH] [--aws-bucket B] [--aws-region R]
+      [--python PATH] [--aws-bucket B] [--aws-region R] [--force]
   narrated-replay serve --store DIR [--port 4319]
 
+With --all, sessions already analysed are skipped unless --force is given.
 Exit codes: 0 ok, 1 analysis failure, 2 bad arguments.`;
 
 class UsageError extends Error {}
@@ -61,7 +62,7 @@ async function analyze(args: string[]): Promise<number> {
     store: { type: 'string' }, session: { type: 'string' }, all: { type: 'boolean' },
     transcriber: { type: 'string' }, llm: { type: 'string' }, model: { type: 'string' },
     extraction: { type: 'string' }, 'product-context': { type: 'string' }, python: { type: 'string' },
-    'aws-bucket': { type: 'string' }, 'aws-region': { type: 'string' },
+    'aws-bucket': { type: 'string' }, 'aws-region': { type: 'string' }, force: { type: 'boolean' },
   });
   if (!v.store) throw new UsageError('--store is required');
   if (!v.session && !v.all) throw new UsageError('give --session ID or --all');
@@ -92,6 +93,14 @@ async function analyze(args: string[]): Promise<number> {
   const ids = v.all ? await store.listSessions() : [v.session!];
   let failed = 0;
   for (const id of ids) {
+    if (v.all && !v.force) {
+      // A scheduled `--all` must not re-transcribe and re-send every old session to the LLM each time.
+      const raw = await store.readFile(id, 'analysis.json');
+      if (raw && JSON.parse(Buffer.from(raw).toString('utf8')).status === 'ok') {
+        console.log(`${id}: already analysed, skipped (use --force to redo)`);
+        continue;
+      }
+    }
     try {
       const r = await analyzeSession({ store, sessionId: id, transcriber, llm, extraction, productContext });
       console.log(`${id}: ${r.items.length} items, ${r.themes.length} themes total${r.seekable ? '' : ' (audio not seekable: ffmpeg missing or failed)'}`);
@@ -111,24 +120,40 @@ async function serve(args: string[]): Promise<number> {
   const store = createFileStore(v.store);
   // Unauthenticated on purpose: bound to loopback only, for local development.
   const handler = createIngestHandler({ store, allowUnauthenticated: true });
+  const MAX_BODY = 5 * 1024 * 1024;
+  const localOrigin = (o: string | undefined) => {
+    try { return !!o && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(o).hostname); } catch { return false; }
+  };
   const server = createServer(async (req, res) => {
-    const cors = {
-      'access-control-allow-origin': req.headers.origin ?? '*',
-      'access-control-allow-headers': 'content-type',
-      'access-control-allow-methods': 'POST, GET, OPTIONS',
-    };
-    if (req.method === 'OPTIONS') { res.writeHead(204, cors).end(); return; }
-    const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
-    if (req.method === 'GET' && url.pathname === '/sessions') {
-      res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify(await store.listSessions()));
-      return;
+    try {
+      // Only pages served from this machine may talk to the local ingest.
+      const origin = req.headers.origin;
+      if (origin && !localOrigin(origin)) { res.writeHead(403).end(); return; }
+      const cors: Record<string, string> = origin
+        ? { 'access-control-allow-origin': origin, vary: 'origin', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, GET, OPTIONS' }
+        : {};
+      if (req.method === 'OPTIONS') { res.writeHead(204, cors).end(); return; }
+      const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
+      if (req.method === 'GET' && url.pathname === '/sessions') {
+        res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify(await store.listSessions()));
+        return;
+      }
+      if (req.method !== 'POST') { res.writeHead(404, cors).end(); return; }
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const c of req) {
+        size += (c as Buffer).length;
+        if (size > MAX_BODY) { res.writeHead(413, cors).end(); req.destroy(); return; }
+        chunks.push(c as Buffer);
+      }
+      const r = await handler(new Request(url, { method: 'POST', headers: req.headers as Record<string, string>, body: Buffer.concat(chunks) }));
+      res.writeHead(r.status, { ...cors, 'content-type': 'application/json' }).end(await r.text());
+    } catch {
+      if (!res.headersSent) res.writeHead(500);
+      res.end();
     }
-    if (req.method !== 'POST') { res.writeHead(404, cors).end(); return; }
-    const chunks: Buffer[] = [];
-    for await (const c of req) chunks.push(c as Buffer);
-    const r = await handler(new Request(url, { method: 'POST', headers: req.headers as Record<string, string>, body: Buffer.concat(chunks) }));
-    res.writeHead(r.status, { ...cors, 'content-type': 'application/json' }).end(await r.text());
   });
+  server.on('clientError', (_e, socket) => socket.destroy());
   await new Promise<void>((res) => server.listen(port, '127.0.0.1', res));
   console.log(`narrated-replay serve: http://127.0.0.1:${port} (store ${v.store}, loopback only, no auth)`);
   return await new Promise<number>(() => undefined);
