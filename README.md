@@ -147,7 +147,20 @@ mocks only; they have not been run against AWS.**
 
 ## Evidence from the prototype
 
-RESULTS_PLACEHOLDER
+A prototype recorded five scripted think-aloud sessions (text-to-speech voices, a small invoicing page, headless
+Chromium, fake microphone) with overlapping complaints. Six issues were planted so that they appear in more than one
+session (no date picker, a date the app rejects, an export button that does nothing, "save" versus "save as
+draft", a slow filter with no sort, an unclear chart). With local faster-whisper (`small.en`) and the `claude` CLI
+(`claude-sonnet-5-5`), `narrated-replay analyze` run over the five sessions in order produced 22 items and 8 themes,
+and every planted issue ended up in a theme with all the sessions that raised it (6 of 6; the two date issues
+landed in one theme). The first version of the clustering prompt scored 3 of 6 on the same sessions; the prompt was then
+changed once to say what counts as the same problem (a symptom and its underlying need, or the same element with a
+different complaint) and re-run.
+
+Read these numbers with care: one run each, the prompt was adjusted after seeing the first result on these same
+sessions (so 6 of 6 is not a held-out score), the speech is clean synthetic audio, the sessions are 30-40 seconds
+long, and categories are the model's first guess, which is why low-confidence items and every product decision are
+flagged for a person.
 
 ## Development
 
