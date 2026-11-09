@@ -1,0 +1,95 @@
+{
+  "name": "narrated-replay",
+  "version": "0.1.0",
+  "description": "Think-aloud feedback for web apps: voice + rrweb replay, transcribed, aligned and triaged by an LLM. AI-generated, not human-reviewed.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Skinnys-Bootleg-Codeshop/narrated-replay.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "narrated-replay": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/recorder/index.d.ts",
+      "default": "./dist/recorder/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./viewer": {
+      "types": "./dist/viewer/index.d.ts",
+      "default": "./dist/viewer/index.js"
+    },
+    "./viewer.css": "./dist/viewer.css",
+    "./talk-button.css": "./dist/talk-button.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "python",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/copy-css.mjs",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "rrweb": "^2.2.1",
+    "rrweb-player": "^2.2.1",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/bedrock-sdk": "*",
+    "@anthropic-ai/sdk": "*",
+    "@aws-sdk/client-s3": "*",
+    "@aws-sdk/client-transcribe": "*",
+    "openai": "*",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/bedrock-sdk": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@aws-sdk/client-transcribe": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0"
+  }
+}

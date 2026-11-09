@@ -1,0 +1,10 @@
+node_modules
+dist
+test-results
+playwright-report
+.next
+*.tsbuildinfo
+examples/*/node_modules
+examples/*/.next
+examples/*/.nr-store
+.nr-store

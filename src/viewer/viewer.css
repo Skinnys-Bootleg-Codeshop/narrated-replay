@@ -1,0 +1,9 @@
+.nr-viewer { font: 14px system-ui, sans-serif; display: grid; gap: 12px; }
+.nr-audio { width: 100%; }
+.nr-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.nr-item-btn { width: 100%; text-align: left; font: inherit; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer; }
+.nr-active .nr-item-btn { border-color: #2563eb; background: #eff6ff; }
+.nr-time { font-variant-numeric: tabular-nums; color: #475569; }
+.nr-cat { font-weight: 600; }
+.nr-review { color: #b45309; }
+.nr-quote { margin: 4px 0 0; color: #475569; }
