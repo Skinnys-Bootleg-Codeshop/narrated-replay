@@ -195,6 +195,8 @@ npm run e2e          # builds, refreshes the example's copy of the package, runs
 `npm run e2e` starts the example app on port 4399 (`NR_E2E_PORT` to change it). The WAV the fake microphone
 plays is committed (`e2e/fixtures/think-aloud.wav`); `scripts/gen-fixtures.sh` regenerates it on macOS.
 
+Layout, live-analysis commands and the rules for changes are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Licence
 
 MIT. See `LICENSE`.
