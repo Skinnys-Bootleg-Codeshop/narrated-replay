@@ -1,0 +1,12 @@
+.nr-talk { --nr-accent: #2563eb; --nr-bg: #fff; --nr-fg: #111; --nr-danger: #dc2626; position: fixed; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; font: 14px system-ui, sans-serif; color: var(--nr-fg); z-index: 2147483000; }
+.nr-btn { font: inherit; padding: 8px 14px; border-radius: 999px; border: 1px solid #cbd5e1; background: var(--nr-bg); color: var(--nr-fg); cursor: pointer; }
+.nr-btn:disabled { opacity: .6; cursor: default; }
+.nr-primary { background: var(--nr-accent); border-color: var(--nr-accent); color: #fff; }
+.nr-recording { background: var(--nr-bg); padding: 6px 8px 6px 12px; border-radius: 999px; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.nr-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--nr-danger); animation: nr-pulse 1.2s infinite; }
+@keyframes nr-pulse { 50% { opacity: .3; } }
+.nr-error { color: var(--nr-danger); }
+.nr-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; }
+.nr-dialog { background: var(--nr-bg); color: var(--nr-fg); max-width: 420px; margin: 16px; padding: 20px; border-radius: 12px; }
+.nr-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+.nr-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }

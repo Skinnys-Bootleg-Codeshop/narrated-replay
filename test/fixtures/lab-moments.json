@@ -1,0 +1,447 @@
+{
+ "s2": [
+  {
+   "session": "s2",
+   "id": "s2-m0",
+   "start": 1.2,
+   "end": 5.7,
+   "quote": "Right, starting from the dashboard, let me go straight to new invoice.",
+   "page": "/new",
+   "events": [
+    {
+     "t": 4.3,
+     "kind": "click",
+     "detail": "<a#nav-new> 'New invoice'"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "New invoice"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "Customer"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "Due date"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "Amount"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save invoice"
+    },
+    {
+     "t": 4.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save as draft"
+    },
+    {
+     "t": 4.4,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/new"
+    }
+   ]
+  },
+  {
+   "session": "s2",
+   "id": "s2-m1",
+   "start": 8.1,
+   "end": 12.2,
+   "quote": "Customer, globex, and the due date, there's no calendar here which is odd.",
+   "page": "/new",
+   "events": [
+    {
+     "t": 10.2,
+     "kind": "input",
+     "detail": "<input#customer> '' typed (masked format) 'aaaaaa'"
+    },
+    {
+     "t": 10.8,
+     "kind": "input",
+     "detail": "<input#due> '' typed (masked format) '99/99/9999'"
+    }
+   ]
+  },
+  {
+   "session": "s2",
+   "id": "s2-m2",
+   "start": 13.9,
+   "end": 21.3,
+   "quote": "Ok, I'll hit save invoice, ugh, invalid date again, even though that's the format it asked for, this is broken.",
+   "page": "/new",
+   "events": [
+    {
+     "t": 18.2,
+     "kind": "click",
+     "detail": "<button#btn-save> 'Save invoice'"
+    },
+    {
+     "t": 18.2,
+     "kind": "dom_text_appeared",
+     "detail": "Error: invalid date"
+    }
+   ]
+  },
+  {
+   "session": "s2",
+   "id": "s2-m3",
+   "start": 23.0,
+   "end": 28.3,
+   "quote": "I'm not sure what the difference is between save and save as draft, let me try draft.",
+   "page": "/new",
+   "events": [
+    {
+     "t": 26.3,
+     "kind": "click",
+     "detail": "<button#btn-draft> 'Save as draft'"
+    },
+    {
+     "t": 26.3,
+     "kind": "dom_text_appeared",
+     "detail": "Draft saved"
+    }
+   ]
+  },
+  {
+   "session": "s2",
+   "id": "s2-m4",
+   "start": 30.0,
+   "end": 35.5,
+   "quote": "Now reports, I wish I could export this to CSV so I can send it to my accountant.",
+   "page": "/reports",
+   "events": [
+    {
+     "t": 33.4,
+     "kind": "click",
+     "detail": "<a#nav-rep> 'Reports'"
+    },
+    {
+     "t": 33.4,
+     "kind": "dom_text_appeared",
+     "detail": "Reports"
+    },
+    {
+     "t": 33.4,
+     "kind": "dom_text_appeared",
+     "detail": "Revenue by month (chart)"
+    },
+    {
+     "t": 33.4,
+     "kind": "dom_text_appeared",
+     "detail": "Export"
+    },
+    {
+     "t": 33.4,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/reports"
+    },
+    {
+     "t": 34.0,
+     "kind": "click",
+     "detail": "<button#btn-export> 'Export'"
+    },
+    {
+     "t": 34.0,
+     "kind": "dom_text_appeared",
+     "detail": "Export is not available yet"
+    }
+   ]
+  }
+ ],
+ "s3": [
+  {
+   "session": "s3",
+   "id": "s3-m0",
+   "start": 1.3,
+   "end": 6.0,
+   "quote": "Looking at reports first, the chart is just a box, I can tell what it shows.",
+   "page": "/reports",
+   "events": [
+    {
+     "t": 4.2,
+     "kind": "click",
+     "detail": "<a#nav-rep> 'Reports'"
+    },
+    {
+     "t": 4.2,
+     "kind": "dom_text_appeared",
+     "detail": "Reports"
+    },
+    {
+     "t": 4.2,
+     "kind": "dom_text_appeared",
+     "detail": "Revenue by month (chart)"
+    },
+    {
+     "t": 4.2,
+     "kind": "dom_text_appeared",
+     "detail": "Export"
+    },
+    {
+     "t": 4.2,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/reports"
+    }
+   ]
+  },
+  {
+   "session": "s3",
+   "id": "s3-m1",
+   "start": 7.5,
+   "end": 8.7,
+   "quote": "There's an export button.",
+   "page": "/reports",
+   "events": []
+  },
+  {
+   "session": "s3",
+   "id": "s3-m2",
+   "start": 9.1,
+   "end": 10.0,
+   "quote": "Let me click it.",
+   "page": "/reports",
+   "events": []
+  },
+  {
+   "session": "s3",
+   "id": "s3-m3",
+   "start": 10.4,
+   "end": 11.8,
+   "quote": "Oh, it says not available.",
+   "page": "/reports",
+   "events": [
+    {
+     "t": 12.1,
+     "kind": "click",
+     "detail": "<button#btn-export> 'Export'"
+    },
+    {
+     "t": 12.1,
+     "kind": "dom_text_appeared",
+     "detail": "Export is not available yet"
+    }
+   ]
+  },
+  {
+   "session": "s3",
+   "id": "s3-m4",
+   "start": 12.4,
+   "end": 13.8,
+   "quote": "Why is the button even there?",
+   "page": "/reports",
+   "events": [
+    {
+     "t": 12.1,
+     "kind": "click",
+     "detail": "<button#btn-export> 'Export'"
+    },
+    {
+     "t": 12.1,
+     "kind": "dom_text_appeared",
+     "detail": "Export is not available yet"
+    }
+   ]
+  },
+  {
+   "session": "s3",
+   "id": "s3-m5",
+   "start": 14.2,
+   "end": 15.6,
+   "quote": "I need a CSV export.",
+   "page": "/reports",
+   "events": []
+  },
+  {
+   "session": "s3",
+   "id": "s3-m6",
+   "start": 17.1,
+   "end": 18.0,
+   "quote": "Back to the dashboard.",
+   "page": "/reports",
+   "events": []
+  },
+  {
+   "session": "s3",
+   "id": "s3-m7",
+   "start": 18.6,
+   "end": 23.7,
+   "quote": "The overdo filter works, but it would be great to email a reminder to those customers straight from here.",
+   "page": "/dash",
+   "events": [
+    {
+     "t": 20.8,
+     "kind": "click",
+     "detail": "<a#nav-dash> 'Dashboard'"
+    },
+    {
+     "t": 20.8,
+     "kind": "dom_text_appeared",
+     "detail": "Dashboard"
+    },
+    {
+     "t": 20.8,
+     "kind": "dom_text_appeared",
+     "detail": "Outstanding: \u00a34,210.00"
+    },
+    {
+     "t": 20.8,
+     "kind": "dom_text_appeared",
+     "detail": "Overdue: 3 invoices"
+    },
+    {
+     "t": 20.8,
+     "kind": "dom_text_appeared",
+     "detail": "Filter overdue"
+    },
+    {
+     "t": 20.8,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/dash"
+    },
+    {
+     "t": 21.4,
+     "kind": "click",
+     "detail": "<button#btn-filter> 'Filter overdue'"
+    },
+    {
+     "t": 21.4,
+     "kind": "dom_text_appeared",
+     "detail": "INV-102 \u00b7 Acme \u00b7 overdue 12 days"
+    },
+    {
+     "t": 21.4,
+     "kind": "dom_text_appeared",
+     "detail": "INV-097 \u00b7 Globex \u00b7 overdue 30 days"
+    }
+   ]
+  },
+  {
+   "session": "s3",
+   "id": "s3-m8",
+   "start": 24.8,
+   "end": 26.5,
+   "quote": "Should I use save or draft?",
+   "page": "/dash",
+   "events": [
+    {
+     "t": 27.3,
+     "kind": "click",
+     "detail": "<a#nav-new> 'New invoice'"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "New invoice"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Customer"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Due date"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Amount"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save invoice"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save as draft"
+    },
+    {
+     "t": 27.4,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/new"
+    },
+    {
+     "t": 27.9,
+     "kind": "click",
+     "detail": "<button#btn-draft> 'Save as draft'"
+    },
+    {
+     "t": 27.9,
+     "kind": "dom_text_appeared",
+     "detail": "Draft saved"
+    }
+   ]
+  },
+  {
+   "session": "s3",
+   "id": "s3-m9",
+   "start": 27.1,
+   "end": 28.9,
+   "quote": "I don't understand which one sends it.",
+   "page": "/new",
+   "events": [
+    {
+     "t": 27.3,
+     "kind": "click",
+     "detail": "<a#nav-new> 'New invoice'"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "New invoice"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Customer"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Due date"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Amount"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save invoice"
+    },
+    {
+     "t": 27.4,
+     "kind": "dom_text_appeared",
+     "detail": "Save as draft"
+    },
+    {
+     "t": 27.4,
+     "kind": "navigate",
+     "detail": "http://localhost:5199/#/new"
+    },
+    {
+     "t": 27.9,
+     "kind": "click",
+     "detail": "<button#btn-draft> 'Save as draft'"
+    },
+    {
+     "t": 27.9,
+     "kind": "dom_text_appeared",
+     "detail": "Draft saved"
+    }
+   ]
+  }
+ ]
+}

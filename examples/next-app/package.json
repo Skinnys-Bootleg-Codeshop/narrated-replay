@@ -1,0 +1,23 @@
+{
+  "name": "narrated-replay-example-next-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 4399",
+    "build": "next build",
+    "start": "next start -p 4399",
+    "refresh": "rm -rf node_modules/narrated-replay && npm install --no-audit --no-fund"
+  },
+  "dependencies": {
+    "narrated-replay": "file:../..",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0"
+  }
+}

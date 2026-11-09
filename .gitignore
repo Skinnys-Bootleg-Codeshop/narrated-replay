@@ -1,0 +1,15 @@
+node_modules
+dist
+test-results
+playwright-report
+.next
+*.tsbuildinfo
+examples/*/node_modules
+examples/*/.next
+examples/*/.nr-store
+.nr-store
+e2e/.store
+
+# Written by `next dev`; kept out of git (agent-instruction files are governed separately)
+examples/next-app/AGENTS.md
+examples/next-app/CLAUDE.md
