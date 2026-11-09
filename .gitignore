@@ -8,3 +8,4 @@ examples/*/node_modules
 examples/*/.next
 examples/*/.nr-store
 .nr-store
+e2e/.store

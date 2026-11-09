@@ -46,7 +46,7 @@
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "npm run build && npm --prefix examples/next-app run refresh && playwright test"
   },
   "dependencies": {
     "rrweb": "^2.2.1",

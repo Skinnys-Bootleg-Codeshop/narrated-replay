@@ -26,8 +26,12 @@ export function momentsForPrompt(moments: Moment[]) {
 }
 
 export const CLUSTER_SYSTEM = `You merge feedback items from usability sessions into themes. You get the existing themes catalogue and a list of new items.
-For each new item decide: does it describe the same underlying issue or request as an existing theme (even if worded differently)? Then assign it to that theme's id. Otherwise assign it to a new theme.
-Never create a new theme for something an existing theme already covers. Items in this batch about the same new issue share one new theme. Singletons get their own new theme.
+A theme is one underlying product problem or request that a team could fix or decide as a single piece of work. For each new item decide whether it belongs to an existing theme.
+Assign an item to an existing theme when any of these holds, even if the wording differs:
+- it describes the same problem or request;
+- it describes the same problem from another angle, for example a symptom ("the upload button does nothing") and the need behind it ("I need to upload spreadsheets"), or the user's confusion and the missing feature that caused it;
+- it concerns the same screen element or feature and the same kind of difficulty (cannot tell what it shows, does not work, is confusing), even if the specific complaint differs.
+Only create a new theme when no existing theme and no other new item fits under those rules. Items in this batch that belong together share one new theme. Do not split one issue into several themes because users described it differently.
 Reply with ONLY this JSON, no prose:
 {"newThemes":[{"key":"short_key","title":"short title","description":"one sentence describing the underlying issue"}],"assignments":[{"ref":"item ref","themeId":"an existing theme id, or new:<key> for a theme listed in newThemes"}]}
 Every item ref must appear exactly once in assignments.`;

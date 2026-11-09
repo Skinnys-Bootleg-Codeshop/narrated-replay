@@ -7,6 +7,8 @@ export interface ViewerApi {
   /** Seek replay to a replay time (ms since the first rrweb event); audio follows. */
   seekToReplayMs(ms: number): void;
   audio: HTMLAudioElement | null;
+  /** The rrweb-player instance (goto, play, pause, getReplayer). */
+  player: unknown;
   /** Replay ms at which audio time 0 happens. */
   offsetMs: number;
 }
@@ -69,7 +71,7 @@ export function SessionViewer({ meta, events, audioUrl, items = [], width = 800,
           void audio.play().catch(() => undefined);
         } else audio.pause();
       });
-      onReady?.({ seekToAudioMs, seekToReplayMs, audio, offsetMs });
+      onReady?.({ seekToAudioMs, seekToReplayMs, audio, player, offsetMs });
     })();
     return () => {
       disposed = true;
