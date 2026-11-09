@@ -1,4 +1,5 @@
-// Example only: add your own access check here (recordings contain voice and screen content).
+// Example only: disabled in production (same guard as the example ingest route), because recordings contain
+// voice and screen content and this page has no access check. Add your own check before enabling it.
 import 'narrated-replay/viewer.css';
 import type { FeedbackItem } from 'narrated-replay/server';
 import { assertSessionId } from 'narrated-replay/server';
@@ -9,6 +10,7 @@ import { Viewer } from './viewer';
 export const dynamic = 'force-dynamic';
 
 export default async function Review({ params }: { params: Promise<{ id: string }> }) {
+  if (process.env.NODE_ENV === 'production') notFound();
   const { id } = await params;
   try { assertSessionId(id); } catch { notFound(); }
   const session = await store.readSession(id).catch(() => null);

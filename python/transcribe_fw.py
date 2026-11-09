@@ -3,9 +3,11 @@
 usage: transcribe_fw.py AUDIO_FILE [MODEL=small.en]
 Output: {"segments": [{"start": s, "end": s, "text": str, "words": [{"w": str, "s": s, "e": s}]}]}
 Audio is decoded with ffmpeg (16 kHz mono float) and passed as an array, which avoids
-the PyAV decoding problems seen with some faster-whisper / av combinations.
+the PyAV decoding problems seen with some faster-whisper / av combinations (tested: faster-whisper's own
+decoder fails on those combinations, so ffmpeg is required for this transcriber).
 """
 import json
+import shutil
 import subprocess
 import sys
 
@@ -24,6 +26,9 @@ def main() -> int:
     if len(sys.argv) < 2:
         print("usage: transcribe_fw.py AUDIO_FILE [MODEL]", file=sys.stderr)
         return 2
+    if shutil.which("ffmpeg") is None:
+        print("narrated-replay: the faster-whisper transcriber needs ffmpeg on PATH (install ffmpeg)", file=sys.stderr)
+        return 3
     model = WhisperModel(sys.argv[2] if len(sys.argv) > 2 else "small.en", device="cpu", compute_type="int8")
     segs, _info = model.transcribe(load(sys.argv[1]), word_timestamps=True, language="en", vad_filter=False)
     out = [

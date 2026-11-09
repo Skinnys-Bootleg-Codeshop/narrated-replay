@@ -3,6 +3,7 @@ export * from './ingest.js';
 export * from './audio.js';
 export * from './align.js';
 export * from './triage.js';
+export * from './forget.js';
 export * from './prompts.js';
 export * from './transcribe/index.js';
 export * from './llm/index.js';

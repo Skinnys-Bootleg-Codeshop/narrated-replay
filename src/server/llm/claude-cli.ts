@@ -45,6 +45,12 @@ function runClaude(opts: ClaudeCliOptions, system: string, user: string): Promis
         reject(new Error(`claude CLI returned non-JSON output: ${out.slice(0, 200)}`));
       }
     });
+    // The CLI may exit before reading the whole prompt (EPIPE): fail this call, not the whole process.
+    child.stdin.on('error', (e) => {
+      clearTimeout(timer);
+      child.kill('SIGKILL');
+      reject(new Error(`claude CLI closed its input early: ${e.message}${err ? `: ${err.slice(0, 300)}` : ''}`));
+    });
     child.stdin.end(user);
   });
 }

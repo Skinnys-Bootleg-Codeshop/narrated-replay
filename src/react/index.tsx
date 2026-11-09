@@ -5,11 +5,15 @@ import { httpUploader } from '../recorder/uploader.js';
 export type NarratedReplayOptions = Omit<RecorderOptions, 'uploader'> &
   ({ uploader: RecorderOptions['uploader']; endpoint?: undefined } | { endpoint: string; uploader?: undefined; headers?: Record<string, string> });
 
+export type NarratedReplayState = RecorderState | 'starting';
+
 export function useNarratedReplay(options: NarratedReplayOptions) {
   const optsRef = useRef(options);
   optsRef.current = options;
   const recRef = useRef<Recorder | null>(null);
-  const [state, setState] = useState<RecorderState>('idle');
+  const [state, setState] = useState<NarratedReplayState>('idle');
+  const startingRef = useRef(false);
+  const unmountedRef = useRef(false);
   const [error, setError] = useState<Error | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const startedAt = useRef(0);
@@ -30,15 +34,26 @@ export function useNarratedReplay(options: NarratedReplayOptions) {
   }, [state]);
 
   // Must be called from a user gesture (click handler): it asks for the microphone.
+  // Extra calls while a start is pending, or while recording, are ignored.
   const start = useCallback(async () => {
+    const cur = recRef.current;
+    if (startingRef.current || cur?.state === 'recording' || cur?.state === 'stopping') return;
+    startingRef.current = true;
     setError(null);
-    recRef.current = build();
+    setState('starting');
+    const rec = build();
+    recRef.current = rec;
     startedAt.current = Date.now();
     setElapsedMs(0);
     try {
-      await recRef.current.start();
+      await rec.start();
+      // The component went away while the microphone prompt was open: do not keep recording.
+      if (unmountedRef.current) await rec.stop().catch(() => undefined);
     } catch {
       /* surfaced through error state */
+    } finally {
+      startingRef.current = false;
+      setState((st) => (st === 'starting' ? 'idle' : st));
     }
   }, [build]);
 
@@ -50,8 +65,13 @@ export function useNarratedReplay(options: NarratedReplayOptions) {
     }
   }, []);
 
-  useEffect(() => () => {
-    if (recRef.current?.state === 'recording') void recRef.current.stop().catch(() => undefined);
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      // A recorder still awaiting the microphone is stopped by start() when it resolves.
+      if (recRef.current?.state === 'recording') void recRef.current.stop().catch(() => undefined);
+    };
   }, []);
 
   return { state, start, stop, error, elapsedMs };
@@ -114,7 +134,7 @@ export function TalkButton({ options, consentText, labels }: TalkButtonProps) {
   return createElement(
     'div',
     { className: 'nr-talk' },
-    createElement('button', { type: 'button', className: 'nr-btn', onClick: onTalk, 'data-testid': 'nr-talk' }, l.talk),
+    createElement('button', { type: 'button', className: 'nr-btn', onClick: onTalk, disabled: state === 'starting', 'data-testid': 'nr-talk' }, l.talk),
     error ? createElement('span', { className: 'nr-error', role: 'alert' }, error.message) : null,
     asking
       ? createElement(

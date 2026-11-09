@@ -27,6 +27,10 @@ test('consent, record across client-side navigation, upload, shared clock', asyn
   expect(inputs).toContain('aaa aaaa');
   expect(inputs.some((t) => t.includes('2026') || t.includes('hunter2') || t.includes('milk'))).toBe(false);
   expect(inputs).toContain('*******');
+  // hidden inputs (CSRF tokens) never reach the snapshot; the end of recording is marked
+  expect(JSON.stringify(events)).not.toContain('csrf-TOKEN-xyz-123');
+  expect(JSON.stringify(events)).toContain('*'.repeat('csrf-TOKEN-xyz-123'.length));
+  expect(events.at(-1).data.tag).toBe('nr:stop');
   // clicks were recorded (source 2, type 2)
   expect(events.some((e) => e.type === 3 && e.data.source === 2 && e.data.type === 2)).toBe(true);
 });

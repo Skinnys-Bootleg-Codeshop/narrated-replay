@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile, stat, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { CHUNK_KINDS, SessionMetaSchema, UUID_V4, type ChunkKind, type SessionMeta } from '../shared/types.js';
 
@@ -24,6 +24,8 @@ export interface Store {
   writeJson(name: string, value: unknown): Promise<void>;
   writeFile(sessionId: string, name: string, data: Uint8Array | string): Promise<void>;
   readFile(sessionId: string, name: string): Promise<Uint8Array | null>;
+  /** Delete everything stored for one session (chunks, meta, analysis files). Does not touch themes.json: see forgetSession. */
+  deleteSession(sessionId: string): Promise<void>;
 }
 
 export function assertSessionId(id: unknown): asserts id is string {
@@ -105,12 +107,29 @@ export function createFileStore(rootDir: string): Store {
     },
     async readJson(name) {
       assertName(name);
-      try { return JSON.parse(await readFile(under(name), 'utf8')); } catch { return null; }
+      let text: string;
+      try { text = await readFile(under(name), 'utf8'); }
+      catch (e) {
+        if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') return null;
+        throw e;
+      }
+      // A malformed file throws: callers must not treat it as an empty catalogue and overwrite it.
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error(`narrated-replay: ${name} is not valid JSON (${(e as Error).message}); fix or remove it`); }
     },
     async writeJson(name, value) {
       assertName(name);
       await mkdir(root, { recursive: true });
-      await writeFile(under(name), JSON.stringify(value, null, 2));
+      // Write to a temp file in the same directory, then rename: readers never see a half-written file.
+      const dest = under(name);
+      const tmp = `${dest}.${process.pid}.${Date.now()}.tmp`;
+      try {
+        await writeFile(tmp, JSON.stringify(value, null, 2));
+        await rename(tmp, dest);
+      } catch (e) {
+        await rm(tmp, { force: true });
+        throw e;
+      }
     },
     async writeFile(id, name, data) {
       assertSessionId(id);
@@ -122,6 +141,10 @@ export function createFileStore(rootDir: string): Store {
       assertSessionId(id);
       assertName(name);
       try { return new Uint8Array(await readFile(under(id, name))); } catch { return null; }
+    },
+    async deleteSession(id) {
+      assertSessionId(id);
+      await rm(under(id), { recursive: true, force: true });
     },
   };
 }
@@ -216,6 +239,12 @@ export function createS3Store(opts: { bucket: string; prefix?: string; client?: 
     async readFile(id, name) {
       assertSessionId(id); assertName(name);
       return get(key(id, name));
+    },
+    async deleteSession(id) {
+      assertSessionId(id);
+      for (const k of await list(key(id) + '/')) {
+        await send((s) => new (s.DeleteObjectCommand ?? Cmd)({ Bucket: opts.bucket, Key: k }));
+      }
     },
   };
 }

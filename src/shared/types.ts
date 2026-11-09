@@ -21,7 +21,7 @@ export type SessionMeta = z.infer<typeof SessionMetaSchema>;
 
 export const MomentEventSchema = z.object({
   t: z.number(),
-  kind: z.enum(['click', 'input', 'navigate', 'error', 'dom_text_appeared']),
+  kind: z.enum(['click', 'input', 'navigate', 'error', 'dom_text_appeared', 'text']),
   detail: z.string(),
 });
 export type MomentEvent = z.infer<typeof MomentEventSchema>;

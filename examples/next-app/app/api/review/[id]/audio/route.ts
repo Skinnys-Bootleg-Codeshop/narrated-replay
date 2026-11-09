@@ -1,9 +1,11 @@
-// Example only: add your own access check here (recordings contain voice and screen content).
+// Example only: disabled in production (same guard as the example ingest route), because recordings contain
+// voice and screen content and this route has no access check. Add your own check before enabling it.
 import { assertSessionId } from 'narrated-replay/server';
 import { store } from '../../../../../lib-store';
 
 // Browsers can only seek in audio when the server answers Range requests, so this route does.
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  if (process.env.NODE_ENV === 'production') return new Response('not found', { status: 404 });
   const { id } = await ctx.params;
   try { assertSessionId(id); } catch { return new Response('bad id', { status: 400 }); }
   for (const [name, type] of [['audio.webm', 'audio/webm'], ['audio.m4a', 'audio/mp4']] as const) {

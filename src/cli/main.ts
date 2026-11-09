@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { createFileStore } from '../server/store.js';
 import { createIngestHandler } from '../server/ingest.js';
+import { forgetSession } from '../server/forget.js';
 import { analyzeSession } from '../server/triage.js';
 import { anthropic } from '../server/llm/anthropic.js';
 import { bedrock } from '../server/llm/bedrock.js';
@@ -21,6 +22,8 @@ Usage:
       [--model M] [--extraction session|moment] [--product-context FILE]
       [--python PATH] [--aws-bucket B] [--aws-region R] [--force]
   narrated-replay serve --store DIR [--port 4319]
+  narrated-replay forget --store DIR --session ID
+      Delete a session and remove its quotes and counts from themes.json.
 
 With --all, sessions already analysed are skipped unless --force is given.
 Exit codes: 0 ok, 1 analysis failure, 2 bad arguments.`;
@@ -36,6 +39,7 @@ export async function main(argv: string[]): Promise<number> {
     }
     if (cmd === 'analyze') return await analyze(rest);
     if (cmd === 'serve') return await serve(rest);
+    if (cmd === 'forget') return await forget(rest);
     throw new UsageError(`unknown command: ${cmd}`);
   } catch (e) {
     if (e instanceof UsageError) {
@@ -112,6 +116,15 @@ async function analyze(args: string[]): Promise<number> {
     }
   }
   return failed ? 1 : 0;
+}
+
+async function forget(args: string[]): Promise<number> {
+  const v = parse(args, { store: { type: 'string' }, session: { type: 'string' } });
+  if (!v.store) throw new UsageError('--store is required');
+  if (!v.session) throw new UsageError('--session is required');
+  const r = await forgetSession({ store: createFileStore(v.store), sessionId: v.session });
+  console.log(`${v.session}: deleted; removed ${r.removedItems} items from themes.json, dropped ${r.removedThemes} empty themes`);
+  return 0;
 }
 
 async function serve(args: string[]): Promise<number> {

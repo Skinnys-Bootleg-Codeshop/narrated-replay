@@ -114,9 +114,24 @@ export function buildTimeline(events: unknown[], meta: SessionMeta): TimelineEnt
             if (n.type === 3 && txt && txt.length < 80) out.push({ tMs, kind: 'dom_text_appeared', detail: txt });
           }
         }
+        for (const at of d.attributes ?? []) {
+          // Attribute mutations (an aria-label change, say) change how later clicks are named.
+          const n = map.get(at.id);
+          if (!n) continue;
+          n.attributes ??= {};
+          for (const [k, v] of Object.entries(at.attributes ?? {})) {
+            if (v === null || v === undefined) delete n.attributes[k];
+            else n.attributes[k] = v;
+          }
+        }
         for (const tx of d.texts ?? []) {
           const n = map.get(tx.id);
-          if (n) n.textContent = tx.value ?? '';
+          if (!n) continue;
+          const next = tx.value ?? '';
+          const changed = next !== (n.textContent ?? '');
+          n.textContent = next;
+          const txt = next.trim();
+          if (changed && txt && txt.length < 80) out.push({ tMs, kind: 'text', detail: txt });
         }
       } else if (d.source === 2 && d.type === 2) {
         const label = map.label(d.id);

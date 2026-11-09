@@ -20,10 +20,14 @@ Status: v0.1, not published to npm. Install from GitHub.
   `localStorage` (`narrated-replay:consent`). Replace the default text (`consentText`) with wording that fits
   your product and your legal advice. Recording starts only after a user gesture and an accepted prompt.
 - **Retention.** Nothing is deleted automatically. Raw audio is the most sensitive artefact: decide how long you
-  keep it, and delete the session directory (or S3 prefix) when you are done. The AWS Transcribe adapter uploads a temporary
+  keep it. `themes.json` is store-wide and holds example quotes (transcript text) and item references from *all*
+  sessions, so deleting a session directory or S3 prefix by hand leaves them behind and keeps counting the
+  session in the themes. Use `npx narrated-replay forget --store DIR --session ID`: it deletes the session and
+  removes its items, quotes and references from `themes.json` (counts go down; themes left empty are dropped).
+  Copies you made elsewhere (backups, S3 versions) are yours to delete. The AWS Transcribe adapter uploads a temporary
   copy of the audio and starts a Transcribe job; it deletes both when the job ends, but a crash in between can leave them.
 - **Masking does not cover speech.** Typed text is recorded in shape only (digits become `9`, letters `a`,
-  other characters are kept) and password and `cc-*` fields are fully masked, but anything a person *says* is
+  other characters are kept) and password, hidden and `cc-*` fields are fully masked, but anything a person *says* is
   recorded as spoken, including names, email addresses and card numbers read aloud. The replay also shows
   whatever is rendered on the page: block sensitive elements with rrweb's `blockClass` (`rr-block`) option.
 - **Console output.** By default the recorder also captures `console.error` and `console.warn` text and
@@ -119,7 +123,7 @@ code (not by the model) for every `product_decision` and for any item with confi
 A new session's items are assigned to an existing theme when they describe the same issue, otherwise to a new one.
 
 **4. A viewer page** that shows the replay with the audio in sync and the items beside it
-(`examples/next-app/app/review/[id]`; protect that page and the audio route with your own access check, they show voice and screen content). Your audio route must answer HTTP Range requests, or browsers cannot seek:
+(`examples/next-app/app/review/[id]`). In the example, the review page and its audio route are disabled when `NODE_ENV` is `production`, exactly like the example ingest route, because they have no access check and show voice and screen content; add your own check before enabling them. Your audio route must answer HTTP Range requests, or browsers cannot seek:
 
 ```tsx
 import { SessionViewer } from 'narrated-replay/viewer';
@@ -133,6 +137,9 @@ one analysis at a time per store: `themes.json` is not locked, so two concurrent
 CLI options: `--extraction session|moment` (one LLM call per session, or per spoken moment: dearer, but it
 keeps themes better apart), `--product-context FILE` (a few lines about your product, added to the prompt),
 `--model`, `--python`. Exit codes: 0 ok, 1 analysis failure, 2 bad arguments.
+`narrated-replay forget --store DIR --session ID` deletes a session and its traces in `themes.json`.
+The viewer's replay controls are the only play/pause/seek controls: the audio follows the replay (including its
+speed), and rrweb's skip-inactive is off so that narration over a still screen is never skipped.
 `narrated-replay serve --store DIR --port 4319` runs a local unauthenticated ingest on 127.0.0.1 only.
 
 ## AWS
@@ -153,7 +160,8 @@ permissions and keep bucket versioning off for that prefix. A single rrweb event
 - Not tested: Safari, Firefox, mobile browsers, real microphones, long sessions, background tabs, the OpenAI,
   AWS and Bedrock adapters against live services, the direct Anthropic API adapter against the live API.
 - Known quirks handled: MediaRecorder output has no duration, so audio is remuxed with `ffmpeg -c copy` (without
-  ffmpeg, analysis still runs and the report says seeking may not work); rrweb does not emit single-page-app
+  ffmpeg, analysis still runs with a transcriber that does not need it, such as `openai` or `aws`, and the report says
+  seeking may not work; the `faster-whisper` transcriber itself requires ffmpeg and fails with a clear message without it); rrweb does not emit single-page-app
   route changes, so the recorder patches `history.pushState`/`replaceState` and listens for `popstate` and
   `hashchange`, emitting `nr:route` events.
 - Whisper word timings can be off by up to about half a second (faster-whisper) or over a second early

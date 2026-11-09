@@ -1,5 +1,5 @@
 import type { SessionMeta } from '../shared/types.js';
-import { defaultMaskInput } from './mask.js';
+import { defaultMaskInput, MASK_ALL_INPUT_TYPES } from './mask.js';
 import { trackRoutes } from './routes.js';
 import type { Uploader } from './uploader.js';
 
@@ -49,6 +49,7 @@ export function createRecorder(opts: RecorderOptions): Recorder {
   let audioSeq = 0;
   const pending: Promise<unknown>[] = [];
   let stopRrweb: (() => void) | undefined;
+  let addCustom: ((tag: string, payload: unknown) => void) | undefined;
   let restoreRoutes: (() => void) | undefined;
   let restoreConsole: (() => void) | undefined;
   let flushTimer: ReturnType<typeof setInterval> | undefined;
@@ -130,12 +131,14 @@ export function createRecorder(opts: RecorderOptions): Recorder {
         emit: (e: unknown) => {
           events.push(e);
         },
-        // maskAllInputs routes every input through maskInputFn (shape only; passwords fully masked).
-        maskAllInputs: true,
+        // Every input type (including hidden) goes through maskInputFn: shape only; hidden and passwords fully masked.
+        maskInputOptions: { ...MASK_ALL_INPUT_TYPES },
         maskInputFn: (text: string, el: HTMLElement) =>
-          maskInput(text, el),
+          // Hidden inputs are always fully masked, even with a custom maskInput.
+          (el as HTMLInputElement | null)?.type?.toLowerCase() === 'hidden' ? '*'.repeat(text.length) : maskInput(text, el),
       } as never);
       stopRrweb = stop ?? undefined;
+      addCustom = (tag, payload) => record.addCustomEvent(tag, payload);
       restoreRoutes = trackRoutes((tag, payload) => record.addCustomEvent(tag, payload));
       if (opts.captureConsoleErrors !== false) restoreConsole = captureConsole((p) => record.addCustomEvent('nr:error', p));
 
@@ -184,6 +187,7 @@ export function createRecorder(opts: RecorderOptions): Recorder {
     flushTimer = undefined;
     try { stopRrweb?.(); } catch { /* ignore */ }
     stopRrweb = undefined;
+    addCustom = undefined;
     restoreRoutes?.();
     restoreRoutes = undefined;
     restoreConsole?.();
@@ -204,6 +208,8 @@ export function createRecorder(opts: RecorderOptions): Recorder {
         await stopped; // final dataavailable fires before stop
       }
       mr = null;
+      // Mark the end of recording so the replay duration covers all the narration.
+      try { addCustom?.('nr:stop', { at: Date.now() }); } catch { /* ignore */ }
       cleanup();
       flushEvents();
       await Promise.all(pending);

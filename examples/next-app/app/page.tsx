@@ -20,6 +20,7 @@ export default function Home() {
         <br />
         <label>Due date <input id="due" name="due" type="text" /></label>
         <br />
+        <input id="csrf" name="csrf" type="hidden" defaultValue="csrf-TOKEN-xyz-123" />
         <label>Secret <input id="secret" name="secret" type="password" /></label>
         <br />
         <button id="btn-save" type="submit">Save note</button>
