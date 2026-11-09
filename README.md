@@ -139,7 +139,8 @@ keeps themes better apart), `--product-context FILE` (a few lines about your pro
 
 S3 store (`createS3Store({ bucket, prefix })`), AWS Transcribe (`awsTranscribe({ bucket, region })`) and Bedrock
 (`bedrock({ region })`, via `@anthropic-ai/bedrock-sdk`) are provided. **These adapters are unit-tested with
-mocks only; they have not been run against AWS.** `awsTranscribe` needs `s3:PutObject`, `s3:DeleteObject`,
+mocks only; they have not been run against AWS.** `awsTranscribe` needs `s3:PutObject`, `s3:GetObject` (Transcribe reads the media with the caller's
+permissions), `s3:DeleteObject`,
 `transcribe:StartTranscriptionJob`, `transcribe:GetTranscriptionJob` and `transcribe:DeleteTranscriptionJob`; it
 deletes its temporary audio copy and the job afterwards and prints a warning if it cannot, so grant the delete
 permissions and keep bucket versioning off for that prefix. A single rrweb event larger than the ingest limit
